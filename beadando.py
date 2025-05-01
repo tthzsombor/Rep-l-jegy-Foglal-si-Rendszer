@@ -91,16 +91,12 @@ class RepulojegyRendszer:
         self.foglalas_letrehozasa(bf2, "Kovács István", datetime.now())
         self.foglalas_letrehozasa(bf2, "Tóth Éva", datetime.now())
         self.foglalas_letrehozasa(nk1, "Szabó Gábor", datetime.now())
-        self.foglalas_letrehozasa(nk1, "Horváth Zsuzsa", datetime.now())
+        self.foglalas_letrehozasa(nk1, "Horváth Zsuzsa", datetime.now()) 
 
     def foglalas_letrehozasa(self, jarat, utas_neve, foglalas_idopontja):
         if jarat and utas_neve and foglalas_idopontja:
-             # Egyszerűsített ellenőrzés: Van-e már foglalás ezen a néven erre a járatra?
             for foglalas in jarat.foglalasok:
                 if foglalas.utas_neve.lower() == utas_neve.lower():
-                     # Itt lehetne összetettebb logika, pl. helyek száma alapján
-                     # messagebox.showwarning("Figyelmeztetés", f"{utas_neve} már rendelkezik foglalással erre a járatra.")
-                     # return None # Vagy engedjük többször foglalni ugyanannak az embernek? Most engedjük.
                      pass
 
             foglalas = JegyFoglalas(jarat, utas_neve, foglalas_idopontja)
@@ -111,9 +107,7 @@ class RepulojegyRendszer:
     def foglalas_lemondasa(self, jaratszam, utas_neve):
         jarat = self.legitarsasag.jarat_keres(jaratszam)
         if jarat:
-            # Fontos: A lista másolatán iterálunk, hogy törölni tudjunk belőle iterálás közben
             for foglalas in jarat.foglalasok[:]:
-                # Kis/nagybetű érzéketlen összehasonlítás
                 if foglalas.utas_neve.lower() == utas_neve.lower():
                     jarat.foglalas_torol(foglalas)
                     return True
@@ -125,35 +119,8 @@ class RepulojegyRendszer:
             osszes_foglalas.extend(jarat.foglalasok)
         return osszes_foglalas
 
-    
-
-    def elerheto_jaratok_listazasa(self, celallomas=None, jarat_tipus=None, datum=None):
-      
-        szurt_jaratok = []
-        
-        for jarat in self.legitarsasag.jaratok:
-            # Célállomás szerinti szűrés (részleges egyezés)
-            if celallomas and celallomas.lower() not in jarat.celallomas.lower():
-                continue
-                
-            # Járat típusa szerinti szűrés (BF/NK prefix alapján)
-            if jarat_tipus:
-                jarat_prefix = jarat.jaratszam[:2].upper()  # Az első 2 karakter
-                if (jarat_tipus.lower() == 'belföldi' and jarat_prefix != 'BF') or \
-                   (jarat_tipus.lower() == 'nemzetközi' and jarat_prefix != 'NK'):
-                    continue
-            
-            # Dátum szerinti szűrés
-            if datum and jarat.indulasi_ido.date() != datum:
-                continue
-                
-            # Csak jövőbeli járatokat jelenítünk meg
-            if jarat.indulasi_ido <= datetime.now():
-                continue
-                
-            szurt_jaratok.append(jarat)
-            
-        return szurt_jaratok
+    def elerheto_jaratok_listazasa(self):
+        return self.legitarsasag.jaratok
 
 class RepulojegyApp:
     def __init__(self, root):
@@ -226,18 +193,17 @@ class RepulojegyApp:
         self.main_frame.rowconfigure(2, weight=1)
         self.main_frame.columnconfigure(0, weight=1)
 
-        # A külső frame konfigurálása 5 oszlopra paddinggel
         for i in range(5):
-            result_outer_frame.columnconfigure(i, weight=1, pad=5)  # 5 pixel padding minden oszlop között
-        result_outer_frame.rowconfigure(0, weight=1)  # Függőleges középre igazítás
+            result_outer_frame.columnconfigure(i, weight=1, pad=5)  
+        result_outer_frame.rowconfigure(0, weight=1)  
 
         # Belső frame (a 3. oszlopnál kezdődik és 3 oszlop széles)
         result_inner_frame = ttk.Frame(result_outer_frame)
         result_inner_frame.grid(
             row=0,
-            column=3,          # 3. oszlop (0-tól indexelünk)
-            columnspan=3,      # 3 oszlop széles (2-3-4)
-            pady=30,           # Függőleges margó
+            column=3,          
+            columnspan=3,      
+            pady=30,           
             sticky="nsew"
         )
 
@@ -255,7 +221,6 @@ class RepulojegyApp:
         )
         self.result_text.grid(row=0, column=0, sticky="nsew")
 
-        # A belső frame súlyozása
         result_inner_frame.rowconfigure(0, weight=1)
         result_inner_frame.columnconfigure(0, weight=1)
         
@@ -266,9 +231,9 @@ class RepulojegyApp:
         
 
     def clear_result(self):
-        self.result_text.config(state=tk.NORMAL) # Írhatóvá tesszük a törléshez
+        self.result_text.config(state=tk.NORMAL) 
         self.result_text.delete(1.0, tk.END)
-        self.result_text.config(state=tk.DISABLED) # Visszaállítjuk csak olvashatóra
+        self.result_text.config(state=tk.DISABLED) 
 
     def display_in_result(self, header, content_list):
         self.clear_result()
@@ -306,7 +271,6 @@ class RepulojegyApp:
         for idx, foglalas in enumerate(foglalasok, 1):
              formatted_bookings.append(f"\n\t\t--- Foglalás #{idx} ---\n{foglalas}\n")
         self.display_in_result("\t\tÖSSZES FOGLALÁS\n\n", formatted_bookings)
-        # Opcionálisan hozzáadhatunk egy összefoglalót
         self.result_text.config(state=tk.NORMAL)
         if foglalasok:
             self.result_text.insert(tk.END, f"\nÖsszesen {len(foglalasok)} foglalás.\n")
@@ -316,41 +280,30 @@ class RepulojegyApp:
 
 
     def foglalas_letrehozasa(self, jarat, utas_neve, foglalas_idopontja):
-        if not jarat or not utas_neve or not foglalas_idopontja:
-            return None
-            
-        # Ellenőrizzük, hogy a járat indulási ideje a jövőben van-e
-        if jarat.indulasi_ido <= datetime.now():
-            messagebox.showwarning("Figyelmeztetés", "Ez a járat már elindult, nem foglalható.")
-            return None
-            
-        # Ellenőrizzük, hogy a foglalás időpontja érvényes (nem múltbeli)
-        if foglalas_idopontja > datetime.now():
-            messagebox.showwarning("Figyelmeztetés", "A foglalás időpontja nem lehet a jövőben.")
-            return None
-            
-        # Ellenőrizzük, hogy van-e még szabad hely (egyszerűsített változat)
-        if len(jarat.foglalasok) >= 10:  # Például max 10 foglalás
-            messagebox.showwarning("Figyelmeztetés", "Nincs szabad hely ezen a járaton.")
-            return None
+        if jarat and utas_neve and foglalas_idopontja:
+            for foglalas in jarat.foglalasok:
+                if foglalas.utas_neve.lower() == utas_neve.lower():
+                    pass
 
-        foglalas = JegyFoglalas(jarat, utas_neve, foglalas_idopontja)
-        jarat.foglalas_hozzaad(foglalas)
-        return foglalas
-
+            foglalas = JegyFoglalas(jarat, utas_neve, foglalas_idopontja)
+            jarat.foglalas_hozzaad(foglalas)
+            return foglalas  # Visszaadjuk a teljes foglalási objektumot
+        return None
 
     def book_ticket(self):
         booking_window = tk.Toplevel(self.root)
         booking_window.title("Jegy Foglalása")
-        booking_window.resizable(False, False) 
+        booking_window.resizable(False, False) # Ne legyen átméretezhető
 
+        # Keret a jobb padding érdekében
         frame = ttk.Frame(booking_window, padding=15)
         frame.pack(fill=tk.BOTH, expand=True)
 
         frame.columnconfigure(1, weight=1) 
 
+        # Járat választás
         ttk.Label(frame, text="Járat:").grid(row=0, column=0, padx=5, pady=5, sticky="w")
-        jaratok = self.rendszer.elerheto_jaratok_listazasa() #Alapbol a meglévő járatok az opciók
+        jaratok = self.rendszer.elerheto_jaratok_listazasa()
         jarat_options = [f"{j.jaratszam}: {j.celallomas} ({j.indulasi_ido.strftime('%Y-%m-%d %H:%M')})" for j in jaratok]
         if not jaratok:
              messagebox.showinfo("Információ", "Jelenleg nincsenek elérhető járatok.", parent=booking_window)
@@ -367,13 +320,13 @@ class RepulojegyApp:
         )
         jarat_combobox.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
         if jarat_options:
-            jarat_combobox.current(0) 
+            jarat_combobox.current(0) # Első elem kiválasztása alapértelmezettként
 
-        
+        # Utas neve
         ttk.Label(frame, text="Utas neve:").grid(row=1, column=0, padx=5, pady=5, sticky="w")
         name_entry = ttk.Entry(frame, width=40) 
         name_entry.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
-        name_entry.focus() 
+        name_entry.focus() # Fókusz a név mezőn
 
         def confirm_booking():
             selected = jarat_var.get()
@@ -396,10 +349,11 @@ class RepulojegyApp:
             if jarat:
                 foglalas = self.rendszer.foglalas_letrehozasa(jarat, utas_neve, datetime.now())
                 if foglalas:
+                    # Az ár lekérése a foglalás objektumból
                     ar = foglalas.ar
                     messagebox.showinfo("Siker", 
                                     f"Foglalás '{utas_neve}' részére a {jaratszam} járatra sikeresen rögzítve!\n"
-                                    f"Jegy ára: {ar:,.0f} Ft", 
+                                    f"Jegy ára: {ar:,.0f} Ft",  
                                     parent=booking_window)
                     booking_window.destroy()
                     self.list_bookings()
@@ -407,7 +361,6 @@ class RepulojegyApp:
                     messagebox.showerror("Hiba", "Hiba történt a foglalás során.", parent=booking_window)
             else:
                 messagebox.showerror("Hiba", f"Nem található járat ezzel a járatszámmal: {jaratszam}", parent=booking_window)
-
 
         button_frame_popup = ttk.Frame(frame)
         button_frame_popup.grid(row=2, column=0, columnspan=2, pady=(15, 0))
@@ -430,6 +383,7 @@ class RepulojegyApp:
 
 
     def cancel_booking(self):
+        # Új ablak a lemondáshoz
         cancel_window = tk.Toplevel(self.root)
         cancel_window.title("Foglalás Lemondása")
         cancel_window.resizable(False, False)
@@ -438,11 +392,13 @@ class RepulojegyApp:
         frame.pack(fill=tk.BOTH, expand=True)
         frame.columnconfigure(1, weight=1)
 
+        # Járatszám
         ttk.Label(frame, text="Járatszám:").grid(row=0, column=0, padx=5, pady=5, sticky="w")
         flight_entry = ttk.Entry(frame, width=30)
         flight_entry.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
         flight_entry.focus() 
 
+        # Utas neve
         ttk.Label(frame, text="Utas neve:").grid(row=1, column=0, padx=5, pady=5, sticky="w")
         name_entry = ttk.Entry(frame, width=30)
         name_entry.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
@@ -455,61 +411,32 @@ class RepulojegyApp:
                 messagebox.showerror("Hiba", "Mindkét mezőt ki kell tölteni!", parent=cancel_window)
                 return
 
-            jarat = self.rendszer.legitarsasag.jarat_keres(jaratszam)
-            if not jarat:
-                messagebox.showerror("Hiba", f"Nem található járat a(z) {jaratszam} járatszámmal!", parent=cancel_window)
-                return
-
-            if jarat.indulasi_ido <= datetime.now():
-                messagebox.showerror("Hiba", "Ez a járat már elindult, a foglalás nem mondható le.", parent=cancel_window)
-                return
-
-            foglalas = next((f for f in jarat.foglalasok 
-                            if f.utas_neve.lower() == utas_neve.lower()), None)
-            if not foglalas:
-                messagebox.showerror("Hiba", 
-                                f"Nem található foglalás '{utas_neve}' névvel a {jaratszam} járaton.",
-                                parent=cancel_window)
-                return
-
-            time_left = jarat.indulasi_ido - datetime.now()
-            if time_left.total_seconds() < 3600:  # 1 órán belül
-                messagebox.showerror("Hiba", 
-                                "Az indulásig kevesebb mint 1 óra van, a foglalás már nem mondható le.",
-                                parent=cancel_window)
-                return
-
             # Megerősítés kérése
-            confirm = messagebox.askyesno(
-                "Megerősítés",
-                f"Biztosan törölni szeretné '{utas_neve}' foglalását a {jaratszam} járatról?\n"
-                f"Indulás: {jarat.indulasi_ido.strftime('%Y-%m-%d %H:%M')}\n"
-                f"Jegy ára: {foglalas.ar:,.0f} Ft",
-                parent=cancel_window
-            )
+            confirm = messagebox.askyesno("Megerősítés",
+                                        f"Biztosan törölni szeretné '{utas_neve}' foglalását a {jaratszam} járatról?",
+                                        parent=cancel_window)
 
             if confirm:
                 if self.rendszer.foglalas_lemondasa(jaratszam, utas_neve):
                     messagebox.showinfo("Siker", "A foglalás sikeresen törölve.", parent=cancel_window)
                     cancel_window.destroy()
-                    self.list_bookings()  # Frissítjük a listát
+                    self.list_bookings() # Frissítjük a listát
                 else:
-                    messagebox.showerror("Hiba", 
-                                    "Hiba történt a foglalás törlése közben.",
-                                    parent=cancel_window)
+                    messagebox.showerror("Hiba", f"Nem található '{utas_neve}' nevű utas a {jaratszam} járaton.", parent=cancel_window)
 
-        button_frame = ttk.Frame(frame)
-        button_frame.grid(row=2, column=0, columnspan=2, pady=(15, 0))
+        # Gomb keret
+        button_frame_popup = ttk.Frame(frame)
+        button_frame_popup.grid(row=2, column=0, columnspan=2, pady=(15, 0))
 
         confirm_button = ttk.Button(
-            button_frame,
+            button_frame_popup,
             text="Lemondás",
             command=confirm_cancel
         )
         confirm_button.pack(side=tk.LEFT, padx=5)
 
         cancel_button = ttk.Button(
-            button_frame,
+            button_frame_popup,
             text="Mégse",
             command=cancel_window.destroy
         )
@@ -517,102 +444,7 @@ class RepulojegyApp:
 
         # Enter lenyomására is működjön
         cancel_window.bind('<Return>', lambda event: confirm_cancel())
-        
-        
-        
-    def list_flights(self):
-        # Szűrési ablak létrehozása
-        filter_window = tk.Toplevel(self.root)
-        filter_window.title("Járat Szűrése (Bezáráskor az összes listázódik)")
-        filter_window.resizable(False, False)
-        
-        frame = ttk.Frame(filter_window, padding=15)
-        frame.pack(fill=tk.BOTH, expand=True)
-        
-        # Város szerinti szűrés (opcionális)
-        ttk.Label(frame, text="Célállomás (részlet is lehet):").grid(row=0, column=0, padx=5, pady=5, sticky="w")
-        city_entry = ttk.Entry(frame)
-        city_entry.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
-        city_entry.insert(0, "")  # Üres alapértelmezett érték
-        
-        # Járat típusa (opcionális)
-        ttk.Label(frame, text="Járat típusa:").grid(row=1, column=0, padx=5, pady=5, sticky="w")
-        flight_type = tk.StringVar()
-        flight_type_combobox = ttk.Combobox(
-            frame, 
-            textvariable=flight_type,
-            values=["Mindegy", "Belföldi", "Nemzetközi"],
-            state="readonly"
-        )
-        flight_type_combobox.current(0)
-        flight_type_combobox.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
-        
-        # Dátum szerinti szűrés (opcionális)
-        ttk.Label(frame, text="Dátum (éééé-hh-nn):").grid(row=2, column=0, padx=5, pady=5, sticky="w")
-        date_entry = ttk.Entry(frame)
-        date_entry.grid(row=2, column=1, padx=5, pady=5, sticky="ew")
-        date_entry.insert(0, "")  # Üres alapértelmezett érték
-        
-        def apply_filters():
-            try:
-                # Szűrési paraméterek kinyerése - mind opcionális
-                celallomas = city_entry.get().strip() or None
-                tipus = flight_type.get().lower() if flight_type.get() != "Mindegy" else None
-                
-                # Dátum feldolgozása (ha meg van adva)
-                datum_str = date_entry.get().strip()
-                datum = None
-                if datum_str:  # Csak akkor próbáljuk feldolgozni, ha nem üres
-                    datum = datetime.strptime(datum_str, "%Y-%m-%d").date()
-                
-                # Járatok szűrése (bármelyik paraméter lehet None)
-                jaratok = self.rendszer.elerheto_jaratok_listazasa(
-                    celallomas=celallomas,
-                    jarat_tipus=tipus,
-                    datum=datum
-                )
-                
-                # Eredmény megjelenítése
-                if jaratok:
-                    self.display_in_result("\t\tSZŰRT JÁRATOK\n\n", jaratok)
-                else:
-                    self.display_in_result("\t\tSZŰRT JÁRATOK\n\n", ["Nincs találat a megadott szűrőkkel!"])
-                
-                filter_window.destroy()
-                
-            except ValueError as e:
-                messagebox.showerror("Hiba", f"Érvénytelen dátum formátum! Használj éééé-hh-nn formátumot vagy hagyd üresen.\nHiba: {str(e)}", parent=filter_window)
-        
-        # Gombok
-        button_frame = ttk.Frame(frame)
-        button_frame.grid(row=3, column=0, columnspan=2, pady=(10, 0))
-        
-        filter_button = ttk.Button(
-            button_frame,
-            text="Szűrés",
-            command=apply_filters
-        )
-        filter_button.pack(side=tk.LEFT, padx=5)
-        
-        cancel_button = ttk.Button(
-            button_frame,
-            text="Mégse",
-            command=filter_window.destroy
-        )
-        cancel_button.pack(side=tk.LEFT, padx=5)
-        
-        # Minden mező opcionális, alapértelmezett üres értékekkel
-        def on_close():
-            jaratok = self.rendszer.elerheto_jaratok_listazasa()
-            self.display_in_result("\t\tELÉRHETŐ JÁRATOK\n\n", jaratok)
-            filter_window.destroy()
-            
-        filter_window.protocol("WM_DELETE_WINDOW", on_close)
-        
-        # Enter-re is szűrjen bármelyik mezőben
-        city_entry.bind('<Return>', lambda e: apply_filters())
-        flight_type_combobox.bind('<Return>', lambda e: apply_filters())
-        date_entry.bind('<Return>', lambda e: apply_filters())
+
 
 def main():
     try:
